@@ -16,7 +16,7 @@ class ViewController: UIViewController {
   lazy var containerView = makeContainerView()
   lazy var emptyView = makeEmptyView(height: height)
   lazy var pagingViewController = makePagingViewController()
-  
+  var isViewAppear: Bool = false
   override func loadView() {
     super.loadView()
     
@@ -39,6 +39,9 @@ class ViewController: UIViewController {
     view.backgroundColor = .gray
     
     pagingViewController.dataSource = self //重要，不能讓 pagingViewController 的 tableView 先執行 scrollViewDelegate，會導致嚴重的 crash
+  }
+  override func viewDidAppear(_ animated: Bool) {
+    isViewAppear = true
   }
 }
 
@@ -100,14 +103,26 @@ extension ViewController: UITableViewDelegate {
 extension ViewController: UIScrollViewDelegate {
   
   func scrollViewDidScroll(_ scrollView: UIScrollView) {
-    guard isViewLoaded else {
+    guard isViewAppear else {
       return
     }
     
     let offsetY = scrollView.contentOffset.y
-    let newConstant = topConstrant.constant + offsetY
-    let theConstant = (0...height).clapping(for: newConstant)
-    topConstrant.constant = theConstant
+    let diff = topConstrant.constant + offsetY
+    if diff >= height, topConstrant.constant == height {
+      return
+    }
+    if diff <= 0, topConstrant.constant == 0 {
+       scrollView.contentOffset.y = 0
+      return
+    }
+    let newConstant = (0...height).clapping(for: diff)
+    print("offset",Int(offsetY),"\t",
+          "diff",Int(diff),"\t",
+          "constant", Int(topConstrant.constant),"\t",
+          "newConstant",newConstant)
+   
+    topConstrant.constant = newConstant
   }
 }
 
