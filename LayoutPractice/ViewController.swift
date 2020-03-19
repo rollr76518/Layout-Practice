@@ -11,24 +11,24 @@ import Parchment
 
 class ViewController: UIViewController {
   
-  /*
-   🦑 我通常是用這個處理
-   */
-  var topConstrant: NSLayoutConstraint!
+  let height: CGFloat = 100
+  lazy var topConstrant = view.safeAreaLayoutGuide.topAnchor.constraint(equalTo: containerView.topAnchor)
+  lazy var containerView = makeContainerView()
+  lazy var emptyView = makeEmptyView(height: height)
   lazy var pagingViewController = makePagingViewController()
   
   override func loadView() {
     super.loadView()
+    
     addChild(pagingViewController)
     pagingViewController.didMove(toParent: self)
-    view.addSubview(pagingViewController.view)
-    topConstrant = pagingViewController.view.topAnchor
-      .constraint(equalTo: view.safeAreaLayoutGuide.topAnchor,constant: 100)
+    view.addSubview(containerView)
+    
     NSLayoutConstraint.activate([
       topConstrant,
-      pagingViewController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-      pagingViewController.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-      pagingViewController.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+      containerView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+      containerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+      containerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
     ])
   }
   
@@ -43,7 +43,21 @@ class ViewController: UIViewController {
 }
 
 extension ViewController {
-  
+  func makeContainerView() -> UIStackView {
+    let stackView = UIStackView(arrangedSubviews: [emptyView, pagingViewController.view])
+    stackView.translatesAutoresizingMaskIntoConstraints = false
+    stackView.axis = .vertical
+    stackView.distribution = .fillProportionally
+    stackView.alignment = .fill
+    return stackView
+  }
+  func makeEmptyView(height:CGFloat) -> UIView {
+    let view = UIView(frame: .zero)
+    view.translatesAutoresizingMaskIntoConstraints = false
+    view.backgroundColor = .red
+    view.heightAnchor.constraint(equalToConstant: height).isActive = true
+    return view
+  }
   func makePagingViewController() -> PagingViewController {
     let vc = PagingViewController()
     vc.view.translatesAutoresizingMaskIntoConstraints = false
@@ -90,8 +104,15 @@ extension ViewController: UIScrollViewDelegate {
       return
     }
     
-    let offsetY = 100 - scrollView.contentOffset.y
-    topConstrant.constant = offsetY > 0 ? offsetY : 0
+    let offsetY = scrollView.contentOffset.y
+    let newConstant = topConstrant.constant + offsetY
+    let theConstant = (0...height).clapping(for: newConstant)
+    topConstrant.constant = theConstant
   }
 }
 
+extension ClosedRange {
+  func clapping(for value: Bound) -> Bound {
+    return Swift.min(upperBound,Swift.max(value,lowerBound))
+  }
+}
